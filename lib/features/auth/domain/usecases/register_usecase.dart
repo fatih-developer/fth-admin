@@ -35,6 +35,7 @@ class RegisterUseCase implements UseCase<UserModel, RegisterParams> {
       params.username,
       params.email,
       params.password,
+      params.confirmPassword,
     );
   }
 }

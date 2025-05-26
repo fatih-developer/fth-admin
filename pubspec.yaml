@@ -34,6 +34,7 @@ dependencies:
   # Local Storage
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  path_provider: ^2.0.0 # Eklendi (versiyonu kontrol edin, ^2.0.0 genel bir başlangıçtır)
   
   # Security
   crypto: ^3.0.3
@@ -42,6 +43,8 @@ dependencies:
   
   # Utils
   uuid: ^4.2.2
+  get_it: ^7.6.7 # En son stabil versiyonu kontrol edin
+  dio: ^5.4.0    # En son stabil versiyonu kontrol edin
   
   # Hive type adapters
   json_annotation: ^4.8.1
@@ -49,6 +52,7 @@ dependencies:
   # Form validation
   formz: ^0.7.0
   dartz: ^0.10.1
+  logger: ^2.5.0
   
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,5 @@
 import 'package:bloc/bloc.dart';
-import 'package:fth_admin/core/models/user_model.dart';
+// import 'package:fth_admin/core/models/user_model.dart'; // Kaldırıldı
 import 'package:fth_admin/features/auth/domain/usecases/login_usecase.dart';
 import 'package:fth_admin/features/auth/domain/usecases/register_usecase.dart';
 import 'package:fth_admin/features/auth/presentation/bloc/auth_event.dart';
@@ -86,26 +86,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     CheckAuthStatusEvent event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
+    emit(AuthLoading()); // Yükleme durumunu yayınla
     try {
-      final isLoggedIn = await _authRepository.isLoggedIn();
-      if (isLoggedIn) {
-        // Kullanıcı giriş yapmış, ancak şu anlık sadece giriş yapıldığını biliyoruz
-        // Detaylı kullanıcı bilgisi almak için ek işlem gerekebilir
-        emit(Authenticated(UserModel(
-          id: 'temp',
-          username: 'Kullanıcı',
-          email: 'user@example.com',
-          passwordHash: '',
-          salt: '',
-          createdAt: DateTime.now(),
-        )));
+      print('[AuthBloc] _onCheckAuthStatusEvent: Kullanıcı durumu kontrol ediliyor...');
+      final currentUser = await _authRepository.getCurrentUser();
+      print('[AuthBloc] _onCheckAuthStatusEvent: AuthRepository.getCurrentUser() sonucu: ${currentUser?.id} - ${currentUser?.email}');
+      if (currentUser != null) {
+        print('[AuthBloc] _onCheckAuthStatusEvent: Kullanıcı bulundu, Authenticated state yayınlanıyor.');
+        emit(Authenticated(currentUser));
       } else {
+        print('[AuthBloc] _onCheckAuthStatusEvent: Kullanıcı bulunamadı, Unauthenticated state yayınlanıyor.');
         emit(Unauthenticated());
       }
-    } catch (e) {
-      emit(AuthError('Oturum durumu kontrol edilemedi'));
-      emit(Unauthenticated());
+    } catch (e, s) {
+      print('[AuthBloc] _onCheckAuthStatusEvent: HATA oluştu - $e');
+      print('[AuthBloc] _onCheckAuthStatusEvent: StackTrace - $s');
+      emit(Unauthenticated()); // Hata durumunda da Unauthenticated yayınla
     }
   }
 }

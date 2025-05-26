@@ -3,98 +3,114 @@ import 'package:easy_sidemenu/easy_sidemenu.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:fth_admin/core/theme/theme_service.dart';
 import 'package:fth_admin/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:fth_admin/features/auth/presentation/bloc/auth_state.dart';
+import 'package:fth_admin/features/auth/presentation/bloc/auth_event.dart';
 import 'package:fth_admin/features/auth/presentation/pages/login_page.dart';
 import 'package:fth_admin/features/home/presentation/pages/home_page.dart';
 import 'package:fth_admin/features/about/presentation/pages/about_page.dart';
 import 'package:fth_admin/features/splash/presentation/pages/splash_page.dart';
+import 'package:fth_admin/routes/auth_bloc_listenable_adapter.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _shellNavigatorKey = GlobalKey<NavigatorState>();
 
 final SideMenuController _sideMenuController = SideMenuController();
 
-final GoRouter router = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/splash',
-  routes: [
-    GoRoute(
-      path: '/splash',
-      builder: (context, state) => const SplashPage(),
-    ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginPage(),
-      redirect: (context, state) {
-        final authState = context.read<AuthBloc>().state;
-        if (authState is Authenticated) {
-          return '/home';
-        }
-        return null;
-      },
-    ),
-    GoRoute(
-      path: '/giris',
-      builder: (context, state) => const LoginPage(),
-    ),
-    ShellRoute(
-      navigatorKey: _shellNavigatorKey,
-      builder: (context, state, child) => MainLayout(child: child),
-      routes: [
-        GoRoute(
-          path: '/home',
-          pageBuilder: (context, state) => CustomTransitionPage(
-            key: state.pageKey,
-            child: const MainLayout(
-              child: HomePage(),
+GoRouter createAppRouter(AuthBlocListenableAdapter authBlocAdapter) {
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/splash',
+    debugLogDiagnostics: true,
+    refreshListenable: authBlocAdapter,
+    routes: [
+      GoRoute(
+        path: '/splash',
+        builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginPage(),
+        redirect: (context, state) {
+          final currentAuthState = authBlocAdapter.state;
+          if (currentAuthState is Authenticated) {
+            return '/home';
+          }
+          return null;
+        },
+      ),
+      GoRoute(
+        path: '/giris',
+        builder: (context, state) => const LoginPage(),
+      ),
+      ShellRoute(
+        navigatorKey: _shellNavigatorKey,
+        builder: (context, state, child) => MainLayout(child: child),
+        routes: [
+          GoRoute(
+            path: '/home',
+            pageBuilder: (context, state) => CustomTransitionPage(
+              key: state.pageKey,
+              child: const HomePage(),
+              transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: child,
+                );
+              },
             ),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: animation,
-                child: child,
-              );
+            redirect: (context, state) {
+              final currentAuthState = authBlocAdapter.state;
+              if (currentAuthState is! Authenticated) {
+                return '/login';
+              }
+              return null;
             },
           ),
-          redirect: (context, state) {
-            final authState = context.read<AuthBloc>().state;
-            if (authState is! Authenticated) {
-              return '/login';
-            }
-            return null;
-          },
-        ),
-        GoRoute(
-          path: '/about',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: AboutPage(),
+          GoRoute(
+            path: '/about',
+            pageBuilder: (context, state) => const NoTransitionPage(
+              child: AboutPage(),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
+    ],
+    errorBuilder: (context, state) => Scaffold(
+      body: Center(
+        child: Text('Sayfa bulunamadı: ${state.uri}'),
+      ),
     ),
-  ],
-  debugLogDiagnostics: true,
-  redirect: (context, state) {
-    final isLoggedIn = context.read<AuthBloc>().state is Authenticated;
-    final isLoginRoute = state.matchedLocation == '/login';
-    
-    if (!isLoggedIn && !isLoginRoute) {
-      return '/login';
-    }
-    
-    if (isLoggedIn && isLoginRoute) {
-      return '/home';
-    }
-    
-    return null;
-  },
-  errorBuilder: (context, state) => Scaffold(
-    body: Center(
-      child: Text('Sayfa bulunamadı: ${state.uri}'),
-    ),
-  ),
-);
+    redirect: (context, state) {
+      final currentAuthState = authBlocAdapter.state;
+
+      print('[GoRouter Redirect] Current Auth State: $currentAuthState');
+      print('[GoRouter Redirect] Current Location: ${state.uri.toString()}');
+
+      final bool loggedIn = currentAuthState is Authenticated;
+      final bool loggingIn = state.uri.toString() == '/login' || state.uri.toString() == '/giris';
+      final bool splashing = state.uri.toString() == '/splash';
+
+      if (splashing) {
+        print('[GoRouter Redirect] Splashing, no redirect.');
+        return null;
+      }
+
+      if (!loggedIn && !loggingIn) {
+        print('[GoRouter Redirect] Not logged in and not on login page. Redirecting to /login.');
+        return '/login';
+      }
+
+      if (loggedIn && loggingIn) {
+        print('[GoRouter Redirect] Logged in and on login page. Redirecting to /home.');
+        return '/home';
+      }
+      
+      print('[GoRouter Redirect] No redirect needed.');
+      return null;
+    },
+  );
+}
 
 class MainLayout extends StatefulWidget {
   final Widget child;
@@ -117,7 +133,6 @@ class _MainLayoutState extends State<MainLayout> {
       }
     });
   }
-
 
   @override
   void dispose() {
@@ -143,15 +158,39 @@ class _MainLayoutState extends State<MainLayout> {
           ),
         ),
         actions: [
+          BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              print('[AppBar BlocBuilder] Anlık Auth State: $state'); 
+              if (state is Authenticated) {
+                print('[AppBar BlocBuilder] Authenticated User ID: ${state.user.id}');
+                print('[AppBar BlocBuilder] Authenticated Username in AppBar: ${state.user.username}');
+                print('[AppBar BlocBuilder] Authenticated Email in AppBar: ${state.user.email}');
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Center(
+                    child: Text(
+                      state.user.username.isNotEmpty 
+                        ? state.user.username 
+                        : state.user.email, 
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
           IconButton(
-            icon: Icon(
-              Theme.of(context).brightness == Brightness.dark
-                  ? Icons.light_mode
-                  : Icons.dark_mode,
-            ),
+            icon: Icon(AdaptiveTheme.of(context).mode.isDark ? Icons.light_mode : Icons.dark_mode),
             onPressed: () {
-              ThemeService.toggleTheme();
               AdaptiveTheme.of(context).toggleThemeMode();
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: () {
+              print('[AppBar] Logout butonuna tıklandı.');
+              context.read<AuthBloc>().add(LogoutEvent());
             },
           ),
         ],
@@ -161,7 +200,6 @@ class _MainLayoutState extends State<MainLayout> {
         child: Drawer(
           child: Column(
             children: [
-              // AppBar yüksekliğinde boşluk ekleyerek menünün AppBar'ın altından başlamasını sağlıyoruz
               SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight),
               Expanded(
                 child: SideMenu(
@@ -188,7 +226,7 @@ class _MainLayoutState extends State<MainLayout> {
                       icon: const Icon(Icons.home),
                       onTap: (index, controller) {
                         context.go('/home');
-                        Navigator.of(context).pop(); // Drawer'ı kapat
+                        Navigator.of(context).pop(); 
                       },
                     ),
                     SideMenuItem(
@@ -196,7 +234,7 @@ class _MainLayoutState extends State<MainLayout> {
                       icon: const Icon(Icons.info),
                       onTap: (index, controller) {
                         context.go('/about');
-                        Navigator.of(context).pop(); // Drawer'ı kapat
+                        Navigator.of(context).pop(); 
                       },
                     ),
                   ],
