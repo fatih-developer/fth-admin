@@ -4,6 +4,7 @@ import 'package:fth_admin/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:fth_admin/features/auth/presentation/bloc/auth_state.dart';
 import 'package:fth_admin/features/auth/presentation/widgets/login_form.dart';
 import 'package:fth_admin/features/auth/presentation/widgets/register_form.dart';
+import 'package:go_router/go_router.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
@@ -22,7 +23,7 @@ class _LoginPageState extends State<LoginPage> {
         listener: (context, state) {
           if (state is Authenticated) {
             // Kullanıcı giriş yaptıktan sonra ana sayfaya yönlendir
-            Navigator.of(context).pushReplacementNamed('/home');
+            context.go('/home');
           }
         },
         child: Container(

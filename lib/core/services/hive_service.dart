@@ -24,9 +24,9 @@ class HiveService {
       await _userBoxInstance.put(user.id, user);
       print('[HiveService] saveUser: _userBoxInstance.put başarıyla tamamlandı - Key: ${user.id}');
       
-      print('[HiveService] saveUser: _authBoxInstance.put çağrılıyor - Key: $_userKey');
-      await _authBoxInstance.put(_userKey, user);
-      print('[HiveService] saveUser: _authBoxInstance.put başarıyla tamamlandı - Key: $_userKey');
+      print('[HiveService] saveUser: _authBoxInstance.put çağrılıyor (user.id ile) - Key: $_userKey');
+      await _authBoxInstance.put(_userKey, user.id);
+      print('[HiveService] saveUser: _authBoxInstance.put (user.id ile) başarıyla tamamlandı - Key: $_userKey');
     } catch (e, s) {
       print('[HiveService] saveUser: Kullanıcı kaydedilirken HATA oluştu - $e');
       print('[HiveService] saveUser: StackTrace - $s');
@@ -35,19 +35,29 @@ class HiveService {
   }
 
   static Future<void> saveCurrentAuthUser(UserModel user) async {
-    print('[HiveService] saveCurrentAuthUser: Mevcut kullanıcı _authBoxInstance içine kaydediliyor - ID: ${user.id}, Key: $_userKey');
+    print('[HiveService] saveCurrentAuthUser: Mevcut kullanıcı IDsi _authBoxInstance içine kaydediliyor - ID: ${user.id}, Key: $_userKey');
     try {
-      await _authBoxInstance.put(_userKey, user);
-      print('[HiveService] saveCurrentAuthUser: _authBoxInstance.put başarıyla tamamlandı - Key: $_userKey');
+      await _authBoxInstance.put(_userKey, user.id);
+      print('[HiveService] saveCurrentAuthUser: _authBoxInstance.put (user.id ile) başarıyla tamamlandı - Key: $_userKey');
     } catch (e, s) {
-      print('[HiveService] saveCurrentAuthUser: Mevcut kullanıcı kaydedilirken HATA oluştu - $e');
+      print('[HiveService] saveCurrentAuthUser: Mevcut kullanıcı IDsi kaydedilirken HATA oluştu - $e');
       print('[HiveService] saveCurrentAuthUser: StackTrace - $s');
       rethrow;
     }
   }
 
   static UserModel? getCurrentUser() {
-    return _authBoxInstance.get(_userKey);
+    print('[HiveService] getCurrentUser: Mevcut kullanıcı IDsi alınıyor - Key: $_userKey');
+    final String? userId = _authBoxInstance.get(_userKey);
+    print('[HiveService] getCurrentUser: Alınan User ID - $userId');
+    if (userId != null) {
+      print('[HiveService] getCurrentUser: _userBoxInstance.get çağrılıyor - Key: $userId');
+      final user = _userBoxInstance.get(userId);
+      print('[HiveService] getCurrentUser: Getirilen kullanıcı - ${user?.email}');
+      return user;
+    }
+    print('[HiveService] getCurrentUser: User ID bulunamadı.');
+    return null;
   }
 
   static UserModel? getUser(String id) {

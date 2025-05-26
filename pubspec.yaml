@@ -9,16 +9,26 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
+
+  # UI & Temalar
+  adaptive_theme: ^3.6.0
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.2.1
+
+  # Router
   go_router: ^13.0.0
-  google_fonts: ^6.1.0
+  
+  # SVG
   flutter_svg: ^2.0.10+1
+  
+  # Splash Screen
   another_flutter_splash_screen: ^1.2.1
-  adaptive_theme: ^3.7.0
+  
+  # Side Menu
   easy_sidemenu: ^0.6.1
   
   # State Management
-  flutter_bloc: ^8.1.4
+  flutter_bloc: ^8.1.5
   equatable: ^2.0.5
   
   # Local Storage
